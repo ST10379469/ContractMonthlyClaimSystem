@@ -1,0 +1,44 @@
+﻿@using ContractMonthlyClaimSystem.Models
+@model ClaimStatus
+
+@{
+    var steps = new[]
+    {
+        new { Status = ClaimStatus.Draft, Label = "Draft", Percentage = 0 },
+        new { Status = ClaimStatus.Submitted, Label = "Submitted", Percentage = 25 },
+        new { Status = ClaimStatus.PendingReview, Label = "Under Review", Percentage = 50 },
+        new { Status = ClaimStatus.ChangesRequested, Label = "Changes Requested", Percentage = 75 },
+        new { Status = ClaimStatus.Approved, Label = "Approved", Percentage = 100 },
+        new { Status = ClaimStatus.Rejected, Label = "Rejected", Percentage = 100 }
+    };
+
+    var currentStep = steps.FirstOrDefault(s => s.Status == Model);
+    var percentage = currentStep?.Percentage ?? 0;
+    var isRejected = Model == ClaimStatus.Rejected;
+}
+
+<div class="progress-tracker">
+    <div class="progress" style="height: 6px;">
+        <div class="progress-bar @(isRejected ? "bg-danger" : "bg-success")"
+             style="width: @percentage%"
+             role="progressbar">
+        </div>
+    </div>
+    <div class="d-flex justify-content-between mt-1">
+        @foreach (var step in steps.Where(s => s.Status != ClaimStatus.ChangesRequested && s.Status != ClaimStatus.Rejected))
+        {
+            <div class="text-center" style="width: 20%">
+                <small class="@(step.Percentage <= percentage ? "fw-bold text-primary" : "text-muted")">
+                    @step.Label
+                </small>
+            </div>
+        }
+    </div>
+</div>
+
+@if (isRejected)
+{
+    <div class="text-center mt-1">
+        <small class="text-danger fw-bold">Claim Rejected</small>
+    </div>
+}

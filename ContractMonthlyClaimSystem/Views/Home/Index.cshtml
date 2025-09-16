@@ -1,0 +1,207 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+    var userRole = Context.Session.GetString("UserRole") ?? "Lecturer";
+    var userEmail = Context.Session.GetString("UserEmail") ?? "user@university.edu";
+
+    // Sample data for dashboard
+    var stats = new
+    {
+        TotalClaims = 10,
+        Pending = 3,
+        Approved = 6,
+        Rejected = 1
+    };
+}
+
+<div class="main-container">
+    <div class="container-fluid py-4">
+        <!-- Welcome Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card bg-gradient text-white" style="background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h2 class="mb-2">Welcome back, @userEmail!</h2>
+                                <p class="mb-0 opacity-75">Here's your @userRole dashboard overview</p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <i class="fas fa-chart-line fa-4x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (userRole == "Lecturer")
+        {
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-0">@stats.TotalClaims</h3>
+                                <span>Total Claims</span>
+                            </div>
+                            <i class="fas fa-file-invoice"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-0">@stats.Pending</h3>
+                                <span>Pending</span>
+                            </div>
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #1dd1a1 0%, #10ac84 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-0">@stats.Approved</h3>
+                                <span>Approved</span>
+                            </div>
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #f368e0 0%, #ff9ff3 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-0">$@((stats.Approved * 1200).ToString("N0"))</h3>
+                                <span>Total Approved</span>
+                            </div>
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">Quick Actions</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <a asp-controller="Claims" asp-action="Create" class="card h-100 text-decoration-none">
+                                        <div class="card-body text-center p-4">
+                                            <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
+                                            <h6 class="card-title">Submit New Claim</h6>
+                                            <p class="text-muted small">Create and submit a new monthly claim</p>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-md-4">
+                                    <a asp-controller="Claims" asp-action="Index" class="card h-100 text-decoration-none">
+                                        <div class="card-body text-center p-4">
+                                            <i class="fas fa-list fa-3x text-success mb-3"></i>
+                                            <h6 class="card-title">View My Claims</h6>
+                                            <p class="text-muted small">Check status of submitted claims</p>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-md-4">
+                                    <a href="#" class="card h-100 text-decoration-none">
+                                        <div class="card-body text-center p-4">
+                                            <i class="fas fa-chart-bar fa-3x text-info mb-3"></i>
+                                            <h6 class="card-title">View Reports</h6>
+                                            <p class="text-muted small">Analytics and claim history</p>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Claims -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Recent Claims</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Month/Year</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                            <th>Progress</th>
+                                            <th>Submitted</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>March 2024</td>
+                                            <td class="fw-bold text-success">$1,250.00</td>
+                                            <td><span class="badge bg-warning status-badge">Under Review</span></td>
+                                            <td>
+                                                <div class="progress">
+                                                    <div class="progress-bar bg-warning" style="width: 50%"></div>
+                                                </div>
+                                            </td>
+                                            <td>2 days ago</td>
+                                        </tr>
+                                        <tr>
+                                            <td>February 2024</td>
+                                            <td class="fw-bold text-success">$1,800.00</td>
+                                            <td><span class="badge bg-success status-badge">Approved</span></td>
+                                            <td>
+                                                <div class="progress">
+                                                    <div class="progress-bar bg-success" style="width: 100%"></div>
+                                                </div>
+                                            </td>
+                                            <td>1 week ago</td>
+                                        </tr>
+                                        <tr>
+                                            <td>January 2024</td>
+                                            <td class="fw-bold text-success">$950.00</td>
+                                            <td><span class="badge bg-success status-badge">Approved</span></td>
+                                            <td>
+                                                <div class="progress">
+                                                    <div class="progress-bar bg-success" style="width: 100%"></div>
+                                                </div>
+                                            </td>
+                                            <td>3 weeks ago</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Coordinator/Manager Dashboard -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body text-center py-5">
+                            <i class="fas fa-tasks fa-4x text-primary mb-3"></i>
+                            <h3>@userRole Dashboard</h3>
+                            <p class="text-muted mb-4">You have access to review and manage claims submitted by lecturers.</p>
+                            <a asp-controller="Coordinator" asp-action="Index" class="btn btn-primary btn-lg">
+                                <i class="fas fa-list-check me-2"></i>Go to Review Claims
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

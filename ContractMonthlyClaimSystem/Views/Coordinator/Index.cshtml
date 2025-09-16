@@ -1,0 +1,238 @@
+﻿@model List<MonthlyClaim>
+@using ContractMonthlyClaimSystem.Models
+@{
+    ViewData["Title"] = "Review Claims";
+
+    // Sample data with 10 claims for review
+    var sampleClaims = new List<MonthlyClaim>
+    {
+        new MonthlyClaim { Id = 1, UserId = "john.doe@university.edu", Month = 3, Year = 2024, TotalAmount = 1250, Status = ClaimStatus.PendingReview, SubmittedDate = DateTime.Now.AddDays(-1) },
+        new MonthlyClaim { Id = 2, UserId = "sarah.smith@university.edu", Month = 3, Year = 2024, TotalAmount = 1800, Status = ClaimStatus.PendingReview, SubmittedDate = DateTime.Now.AddDays(-2) },
+        new MonthlyClaim { Id = 3, UserId = "mike.johnson@university.edu", Month = 3, Year = 2024, TotalAmount = 950, Status = ClaimStatus.PendingReview, SubmittedDate = DateTime.Now.AddDays(-3) },
+        new MonthlyClaim { Id = 4, UserId = "emily.wilson@university.edu", Month = 2, Year = 2024, TotalAmount = 2200, Status = ClaimStatus.Approved, SubmittedDate = DateTime.Now.AddDays(-10) },
+        new MonthlyClaim { Id = 5, UserId = "david.brown@university.edu", Month = 2, Year = 2024, TotalAmount = 1650, Status = ClaimStatus.Approved, SubmittedDate = DateTime.Now.AddDays(-12) },
+        new MonthlyClaim { Id = 6, UserId = "lisa.garcia@university.edu", Month = 2, Year = 2024, TotalAmount = 1400, Status = ClaimStatus.Rejected, SubmittedDate = DateTime.Now.AddDays(-15) },
+        new MonthlyClaim { Id = 7, UserId = "robert.miller@university.edu", Month = 1, Year = 2024, TotalAmount = 1900, Status = ClaimStatus.Approved, SubmittedDate = DateTime.Now.AddDays(-25) },
+        new MonthlyClaim { Id = 8, UserId = "jennifer.davis@university.edu", Month = 1, Year = 2024, TotalAmount = 1100, Status = ClaimStatus.Approved, SubmittedDate = DateTime.Now.AddDays(-28) },
+        new MonthlyClaim { Id = 9, UserId = "thomas.anderson@university.edu", Month = 1, Year = 2024, TotalAmount = 1750, Status = ClaimStatus.ChangesRequested, SubmittedDate = DateTime.Now.AddDays(-30) },
+        new MonthlyClaim { Id = 10, UserId = "amanda.white@university.edu", Month = 12, Year = 2023, TotalAmount = 1300, Status = ClaimStatus.Approved, SubmittedDate = DateTime.Now.AddDays(-40) }
+    };
+
+    var claims = Model.Any() ? Model : sampleClaims;
+    var pendingCount = claims.Count(c => c.Status == ClaimStatus.PendingReview);
+}
+
+<div class="main-container">
+    <div class="container-fluid py-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1">Review Claims</h2>
+                        <p class="text-muted mb-0">Manage and approve lecturer claims</p>
+                    </div>
+                    <div class="badge bg-warning text-dark fs-6 p-2">
+                        <i class="fas fa-clock me-1"></i> @pendingCount Pending Review
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card border-0 text-white" style="background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-0">@claims.Count</h3>
+                                <span>Total Claims</span>
+                            </div>
+                            <i class="fas fa-file-invoice fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 text-white" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-0">@pendingCount</h3>
+                                <span>Pending Review</span>
+                            </div>
+                            <i class="fas fa-clock fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 text-white" style="background: linear-gradient(135deg, #1dd1a1 0%, #10ac84 100%);">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-0">@claims.Count(c => c.Status == ClaimStatus.Approved)</h3>
+                                <span>Approved</span>
+                            </div>
+                            <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 text-white" style="background: linear-gradient(135deg, #f368e0 0%, #ff9ff3 100%);">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-0">$@claims.Where(c => c.Status == ClaimStatus.Approved).Sum(c => c.TotalAmount).ToString("N0")</h3>
+                                <span>Total Approved</span>
+                            </div>
+                            <i class="fas fa-dollar-sign fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Claims Table -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Claims Overview</h5>
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control" placeholder="Search claims...">
+                        <button class="btn btn-outline-secondary" type="button">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Lecturer</th>
+                                <th>Period</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var claim in claims)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar me-3" style="background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);">
+                                                @claim.UserId.Split('@')[0].Substring(0, 1).ToUpper()
+                                            </div>
+                                            <div>
+                                                <strong>@claim.UserId.Split('@')[0]</strong>
+                                                <br>
+                                                <small class="text-muted">@claim.UserId</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong>@System.Globalization.DateTimeFormatInfo.CurrentInfo.GetMonthName(claim.Month) @claim.Year</strong>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-success">$@claim.TotalAmount.ToString("N2")</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-@GetStatusBadgeColor(claim.Status) status-badge">
+                                            <i class="fas fa-@GetStatusIcon(claim.Status) me-1"></i>
+                                            @GetStatusDisplayText(claim.Status)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (claim.SubmittedDate.HasValue)
+                                        {
+                                            <span>@claim.SubmittedDate.Value.ToString("MMM dd, yyyy")</span>
+                                            <br>
+                                            <small class="text-muted">@GetTimeAgo(claim.SubmittedDate.Value)</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-action="Review" asp-route-id="@claim.Id" class="btn btn-primary">
+                                                <i class="fas fa-eye me-1"></i>Review
+                                            </a>
+                                            @if (claim.Status == ClaimStatus.PendingReview)
+                                            {
+                                                <a asp-action="Review" asp-route-id="@claim.Id" class="btn btn-outline-success">
+                                                    <i class="fas fa-check"></i>
+                                                </a>
+                                                <a asp-action="Review" asp-route-id="@claim.Id" class="btn btn-outline-danger">
+                                                    <i class="fas fa-times"></i>
+                                                </a>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    public string GetStatusBadgeColor(ClaimStatus status)
+    {
+        return status switch
+        {
+            ClaimStatus.Approved => "success",
+            ClaimStatus.Rejected => "danger",
+            ClaimStatus.PendingReview => "warning",
+            ClaimStatus.ChangesRequested => "info",
+            ClaimStatus.Draft => "secondary",
+            ClaimStatus.Submitted => "primary",
+            _ => "secondary"
+        };
+    }
+
+    public string GetStatusIcon(ClaimStatus status)
+    {
+        return status switch
+        {
+            ClaimStatus.Approved => "check-circle",
+            ClaimStatus.Rejected => "times-circle",
+            ClaimStatus.PendingReview => "clock",
+            ClaimStatus.ChangesRequested => "exclamation-circle",
+            ClaimStatus.Draft => "edit",
+            ClaimStatus.Submitted => "paper-plane",
+            _ => "question-circle"
+        };
+    }
+
+    public string GetStatusDisplayText(ClaimStatus status)
+    {
+        return status switch
+        {
+            ClaimStatus.PendingReview => "Under Review",
+            ClaimStatus.ChangesRequested => "Changes Requested",
+            _ => status.ToString()
+        };
+    }
+
+    public string GetTimeAgo(DateTime date)
+    {
+        var timeSpan = DateTime.Now - date;
+        if (timeSpan.TotalDays >= 30)
+            return $"{(int)(timeSpan.TotalDays / 30)} months ago";
+        if (timeSpan.TotalDays >= 7)
+            return $"{(int)(timeSpan.TotalDays / 7)} weeks ago";
+        if (timeSpan.TotalDays >= 1)
+            return $"{(int)timeSpan.TotalDays} days ago";
+        if (timeSpan.TotalHours >= 1)
+            return $"{(int)timeSpan.TotalHours} hours ago";
+        return "Just now";
+    }
+}
