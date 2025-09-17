@@ -1,0 +1,115 @@
+﻿@model MonthlyClaim
+@{
+    ViewData["Title"] = "Create New Claim";
+}
+
+<h2>Create New Claim</h2>
+
+<form asp-action="Create" method="post">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="form-group">
+                <label asp-for="Month" class="form-label">Month</label>
+                <select asp-for="Month" class="form-select">
+                    @for (int i = 1; i <= 12; i++)
+                    {
+                        <option value="@i">@System.Globalization.DateTimeFormatInfo.CurrentInfo.GetMonthName(i)</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label asp-for="Year" class="form-label">Year</label>
+                <select asp-for="Year" class="form-select">
+                    @for (int i = DateTime.Now.Year - 1; i <= DateTime.Now.Year + 1; i++)
+                    {
+                        <option value="@i">@i</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h4>Claim Items</h4>
+        <div class="table-responsive">
+            <table class="table" id="claimItemsTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Hours Worked</th>
+                        <th>Module</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="date" class="form-control" name="ClaimItems[0].Date" /></td>
+                        <td><input type="number" step="0.1" class="form-control" name="ClaimItems[0].HoursWorked" /></td>
+                        <td><input type="text" class="form-control" name="ClaimItems[0].Module" /></td>
+                        <td><input type="text" class="form-control" name="ClaimItems[0].Description" /></td>
+                        <td><input type="number" step="0.01" class="form-control" name="ClaimItems[0].Amount" /></td>
+                        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="addRow()">Add Row</button>
+    </div>
+
+    <div class="mt-4">
+        <h4>Supporting Documents</h4>
+        <div class="mb-3">
+            <input type="file" class="form-control" id="fileUpload" />
+        </div>
+        <button type="button" class="btn btn-outline-primary" onclick="uploadFile()">Upload</button>
+        <div id="uploadedFiles" class="mt-2"></div>
+    </div>
+
+    <div class="mt-4">
+        <h4>Calculated Total: <span id="totalAmount">$0.00</span></h4>
+    </div>
+
+    <div class="mt-4">
+        <button type="submit" name="action" value="submit" class="btn btn-primary">Submit Claim</button>
+        <button type="submit" name="action" value="save" class="btn btn-outline-secondary">Save Draft</button>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        function addRow() {
+            const table = document.getElementById('claimItemsTable');
+            const rowCount = table.rows.length - 1;
+            const newRow = table.rows[1].cloneNode(true);
+
+            newRow.querySelectorAll('input').forEach(input => {
+                const name = input.name.replace('[0]', `[${rowCount}]`);
+                input.name = name;
+                input.value = '';
+            });
+
+            table.querySelector('tbody').appendChild(newRow);
+        }
+
+        function removeRow(button) {
+            const row = button.closest('tr');
+            if (document.getElementById('claimItemsTable').rows.length > 2) {
+                row.remove();
+            }
+        }
+
+        function uploadFile() {
+            const fileInput = document.getElementById('fileUpload');
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const uploadedFiles = document.getElementById('uploadedFiles');
+                uploadedFiles.innerHTML += `<div class="text-success">✓ ${file.name}</div>`;
+                fileInput.value = '';
+            }
+        }
+    </script>
+}

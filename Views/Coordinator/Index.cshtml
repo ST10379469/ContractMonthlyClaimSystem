@@ -1,0 +1,58 @@
+﻿@model List<MonthlyClaim>
+@using ContractMonthlyClaimSystem.Models
+@{
+    ViewData["Title"] = "Review Claims";
+}
+
+<h2>Review Claims</h2>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <select class="form-select" onchange="filterClaims(this.value)">
+            <option value="">All Statuses</option>
+            <option value="PendingReview">Pending My Review</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+        </select>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Submitted By</th>
+                <th>Month/Year</th>
+                <th>Total Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var claim in Model)
+            {
+                <tr>
+                    <td>@claim.UserId</td>
+                    <td>@claim.Month/@claim.Year</td>
+                    <td>@claim.TotalAmount.ToString("C")</td>
+                    <td>
+                        <span class="badge bg-@(claim.Status == ClaimStatus.Approved ? "success" :
+                                                                            claim.Status == ClaimStatus.Rejected ? "danger" : "warning")">
+                        @claim.Status
+                    </span>
+                </td>
+                <td>
+                    <a asp-action="Review" asp-route-id="@claim.Id" class="btn btn-primary btn-sm">Review</a>
+                </td>
+            </tr>
+                        }
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function filterClaims(status) {
+        // Filter logic would be implemented in real application
+        console.log('Filtering by:', status);
+    }
+</script>

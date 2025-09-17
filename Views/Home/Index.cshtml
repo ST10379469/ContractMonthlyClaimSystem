@@ -1,0 +1,35 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+    var userRole = Context.Session.GetString("UserRole") ?? "Lecturer";
+    var userEmail = Context.Session.GetString("UserEmail") ?? "user@university.edu";
+}
+
+<div class="row">
+    <div class="col-12">
+        <h2>Welcome to Contract Monthly Claim System</h2>
+        <p class="lead">@userRole Dashboard - Welcome, @userEmail!</p>
+    </div>
+</div>
+
+@if (userRole == "Lecturer")
+{
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-grid gap-2">
+                <a asp-controller="Claims" asp-action="Create" class="btn btn-primary btn-lg">Submit New Claim</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h5>@userRole Dashboard</h5>
+                <p>You have access to review and manage claims submitted by lecturers.</p>
+                <a asp-controller="Coordinator" asp-action="Index" class="btn btn-outline-primary">Go to Review Claims</a>
+            </div>
+        </div>
+    </div>
+}
