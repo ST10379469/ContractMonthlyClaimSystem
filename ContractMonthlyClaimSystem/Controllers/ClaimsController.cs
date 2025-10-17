@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ContractMonthlyClaimSystem.Models;
 using Microsoft.AspNetCore.Http;
+using ContractMonthlyClaimSystem.Exceptions;
 using System.ComponentModel.DataAnnotations;
 
 namespace ContractMonthlyClaimSystem.Controllers
@@ -8,47 +9,79 @@ namespace ContractMonthlyClaimSystem.Controllers
     public class ClaimsController : Controller
     {
         private readonly IWebHostEnvironment _environment;
-        private const long MaxFileSize = 5 * 1024 * 1024; // 5MB
-        private static readonly string[] AllowedExtensions = { ".pdf", ".docx", ".xlsx", ".jpg", ".png", ".jpeg" };
+        private readonly ILogger<ClaimsController> _logger;
 
-        public ClaimsController(IWebHostEnvironment environment)
+        public ClaimsController(IWebHostEnvironment environment, ILogger<ClaimsController> logger)
         {
             _environment = environment;
+            _logger = logger;
         }
 
         public IActionResult Index()
         {
-            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserEmail")))
+            try
             {
-                return RedirectToAction("Login", "Account");
-            }
+                if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserEmail")))
+                {
+                    return RedirectToAction("Login", "Account");
+                }
 
-            var userEmail = HttpContext.Session.GetString("UserEmail");
-            var claims = GetUserClaims(userEmail);
-            return View(claims);
+                var userEmail = HttpContext.Session.GetString("UserEmail");
+                var claims = GetUserClaims(userEmail);
+
+                return View(claims);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving claims for user.");
+                TempData["ErrorMessage"] = "Unable to load your claims. Please try again.";
+                return RedirectToAction("Index", "Home");
+            }
         }
 
         public IActionResult Create()
         {
-            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserEmail")))
+            try
             {
-                return RedirectToAction("Login", "Account");
-            }
+                if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserEmail")))
+                {
+                    return RedirectToAction("Login", "Account");
+                }
 
-            return View();
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading claim creation form.");
+                TempData["ErrorMessage"] = "Unable to load claim form. Please try again.";
+                return RedirectToAction("Index");
+            }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(MonthlyClaim claim, string action, List<IFormFile> supportingDocuments)
         {
-            if (ModelState.IsValid)
+            try
             {
-                // Set user information
-                claim.UserId = HttpContext.Session.GetString("UserEmail");
-                claim.CreatedDate = DateTime.Now;
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                    );
+                    throw new ClaimValidationException("Please correct the validation errors.", errors);
+                }
 
-                // Set status based on action
+                // Validate user session
+                var userEmail = HttpContext.Session.GetString("UserEmail");
+                if (string.IsNullOrEmpty(userEmail))
+                {
+                    throw new UnauthorizedAccessException("User session expired. Please login again.");
+                }
+
+                claim.UserId = userEmail;
+                claim.CreatedDate = DateTime.Now;
                 claim.Status = action == "submit" ? ClaimStatus.PendingReview : ClaimStatus.Draft;
 
                 if (action == "submit")
@@ -56,10 +89,7 @@ namespace ContractMonthlyClaimSystem.Controllers
                     claim.SubmittedDate = DateTime.Now;
                 }
 
-                // Calculate total amount
-                claim.TotalAmount = claim.ClaimItems?.Sum(item => item.Amount) ?? 0;
-
-                // Handle file uploads
+                // Validate and process files
                 if (supportingDocuments != null && supportingDocuments.Count > 0)
                 {
                     claim.SupportingDocuments = new List<SupportingDocument>();
@@ -68,15 +98,12 @@ namespace ContractMonthlyClaimSystem.Controllers
                     {
                         if (file.Length > 0)
                         {
-                            // Validate file
                             var validationResult = ValidateFile(file);
                             if (!validationResult.isValid)
                             {
-                                ModelState.AddModelError("", validationResult.errorMessage);
-                                return View(claim);
+                                throw new FileValidationException(validationResult.errorMessage);
                             }
 
-                            // Save file
                             var document = await SaveUploadedFile(file, claim.Id);
                             if (document != null)
                             {
@@ -86,9 +113,8 @@ namespace ContractMonthlyClaimSystem.Controllers
                     }
                 }
 
-                // Save claim logic here (database operation)
-                // _context.Claims.Add(claim);
-                // await _context.SaveChangesAsync();
+                // Save claim to database
+                
 
                 TempData["SuccessMessage"] = action == "submit"
                     ? "Claim submitted successfully!"
@@ -96,56 +122,99 @@ namespace ContractMonthlyClaimSystem.Controllers
 
                 return RedirectToAction("Index");
             }
-
-            return View(claim);
-        }
-
-        public IActionResult Details(int id)
-        {
-            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserEmail")))
+            catch (ClaimValidationException ex)
             {
+                foreach (var error in ex.Errors)
+                {
+                    foreach (var message in error.Value)
+                    {
+                        ModelState.AddModelError(error.Key, message);
+                    }
+                }
+                return View(claim);
+            }
+            catch (FileValidationException ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                return View(claim);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Unauthorized access attempt.");
+                TempData["ErrorMessage"] = ex.Message;
                 return RedirectToAction("Login", "Account");
             }
-
-            var userEmail = HttpContext.Session.GetString("UserEmail");
-            var claim = GetClaimById(id);
-
-            if (claim == null || claim.UserId != userEmail)
+            catch (Exception ex)
             {
-                return NotFound();
+                _logger.LogError(ex, "Error creating claim.");
+                TempData["ErrorMessage"] = "An error occurred while creating your claim. Please try again.";
+                return View(claim);
             }
-
-            return View(claim);
         }
 
         [HttpPost]
         public IActionResult UpdateStatus(int id, ClaimStatus status, string notes = "")
         {
-            // Update claim status logic
-            var claim = GetClaimById(id);
-            if (claim != null)
+            try
             {
+                if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserEmail")))
+                {
+                    throw new UnauthorizedAccessException("User session expired.");
+                }
+
+                var userRole = HttpContext.Session.GetString("UserRole");
+                if (userRole != "Coordinator" && userRole != "Manager")
+                {
+                    throw new UnauthorizedAccessException("You don't have permission to perform this action.");
+                }
+
+                var claim = GetClaimById(id);
+                if (claim == null)
+                {
+                    throw new ArgumentException($"Claim with ID {id} not found.");
+                }
+
                 claim.Status = status;
                 // Save changes to database
-            }
 
-            TempData["SuccessMessage"] = $"Claim status updated to {status}.";
-            return RedirectToAction("Index");
+                TempData["SuccessMessage"] = $"Claim status updated to {status} successfully.";
+                return RedirectToAction("Index");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Unauthorized status update attempt.");
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction("Login", "Account");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Claim not found for status update.");
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating claim status.");
+                TempData["ErrorMessage"] = "An error occurred while updating the claim status.";
+                return RedirectToAction("Index");
+            }
         }
 
+        // Helper methods 
         private (bool isValid, string errorMessage) ValidateFile(IFormFile file)
         {
-            // Check file size
-            if (file.Length > MaxFileSize)
+            const long maxFileSize = 5 * 1024 * 1024; // 5MB
+            string[] allowedExtensions = { ".pdf", ".docx", ".xlsx", ".jpg", ".png", ".jpeg" };
+
+            if (file.Length > maxFileSize)
             {
-                return (false, $"File {file.FileName} exceeds maximum size of 5MB.");
+                return (false, $"File '{file.FileName}' exceeds maximum size of 5MB.");
             }
 
-            // Check file extension
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (!AllowedExtensions.Contains(extension))
+            if (!allowedExtensions.Contains(extension))
             {
-                return (false, $"File type {extension} is not supported. Allowed types: {string.Join(", ", AllowedExtensions)}");
+                return (false, $"File type '{extension}' is not supported. Allowed types: {string.Join(", ", allowedExtensions)}");
             }
 
             return (true, string.Empty);
@@ -178,24 +247,24 @@ namespace ContractMonthlyClaimSystem.Controllers
             }
             catch (Exception ex)
             {
-                // Log error
-                return null;
+                _logger.LogError(ex, "Error saving uploaded file.");
+                throw new FileValidationException("Error saving file. Please try again.");
             }
         }
 
-        // Helper methods - replace with actual database calls
         private List<MonthlyClaim> GetUserClaims(string userEmail)
         {
+            
             return new List<MonthlyClaim>
             {
                 new MonthlyClaim
                 {
                     Id = 1,
-                    Month = 1,
+                    Month = 3,
                     Year = 2024,
-                    TotalAmount = 1500,
-                    Status = ClaimStatus.Approved,
-                    SubmittedDate = new DateTime(2024, 1, 15),
+                    TotalAmount = 1250,
+                    Status = ClaimStatus.PendingReview,
+                    SubmittedDate = DateTime.Now.AddDays(-2),
                     UserId = userEmail
                 },
                 new MonthlyClaim
@@ -204,8 +273,8 @@ namespace ContractMonthlyClaimSystem.Controllers
                     Month = 2,
                     Year = 2024,
                     TotalAmount = 1800,
-                    Status = ClaimStatus.PendingReview,
-                    SubmittedDate = new DateTime(2024, 2, 10),
+                    Status = ClaimStatus.Approved,
+                    SubmittedDate = DateTime.Now.AddDays(-7),
                     UserId = userEmail
                 }
             };
